@@ -897,19 +897,7 @@ export default function App() {
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
     <div style={{minHeight:"100vh",background:"linear-gradient(160deg,#0d0d1a 0%,#1a0808 55%,#0a0a1a 100%)",fontFamily:"'Crimson Text',Georgia,serif",color:C.text,paddingBottom:60,overflowX:"hidden"}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Cinzel:wght@400;700&display=swap');
-        *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        input,select,button{-webkit-appearance:none;appearance:none;}
-        input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
-        input[type=number]{-moz-appearance:textfield;}
-        select option{background:#1a0a0a;}
-        body{margin:0;overscroll-behavior:none;}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-        @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-        button:active{filter:brightness(1.2);}
-        textarea{color:#e8d5b0;}
-      `}</style>
+      
 
       <div style={{background:"linear-gradient(180deg,#2a0808,#180404)",borderBottom:"2px solid #8b1a1a",padding:"14px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 4px 20px rgba(139,26,26,.4)"}}>
         <h1 style={{fontSize:20,fontWeight:"bold",color:C.gold,letterSpacing:2,textShadow:"0 0 20px rgba(232,200,122,.4)",margin:0,fontFamily:"'Cinzel',Georgia,serif"}}>⚔ D&D Combat</h1>
