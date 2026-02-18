@@ -12,6 +12,24 @@
     <!-- PWA manifest (makes it installable on Android; iOS uses the apple meta tags above) -->
     <link rel="manifest" href="/manifest.json" />
 
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  input,select,button{-webkit-appearance:none;appearance:none;}
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+  input[type=number]{-moz-appearance:textfield;}
+  select option{background:#1a0a0a;}
+  body{margin:0;overscroll-behavior:none;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(12px)}
+                     to{opacity:1;transform:translateX(-50%) translateY(0)}}
+  button:active{filter:brightness(1.2);}
+  textarea{color:#e8d5b0;}
+</style>
+
+
+
     <!-- iOS home screen icons -->
     <link rel="apple-touch-icon" sizes="180x180" href="/icon-180.png" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
