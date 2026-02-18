@@ -940,12 +940,6 @@ export default function App() {
         {tab==="library"   && <LibraryTab/>}
         {tab==="conditions"&& <ConditionsTab/>}
       </div>
-
-      {/* Hidden file input for imports */}
-      <input ref={importFileRef} type="file" accept=".json,.monster,.txt" style={{display:"none"}} onChange={handleImportFile}/>
-
-      {importModal && <ImportModal/>}
-      {toast && <Toast msg={toast} onDone={()=>setToast("")}/>}
     </div>
   );
 }
