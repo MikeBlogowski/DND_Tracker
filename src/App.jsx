@@ -139,14 +139,14 @@ function HpBar({ current, max }) {
 function Stepper({ label, value, onChange, color="#e8d5b0" }) {
   const n = parseInt(value) || 0;
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-      <label style={{fontSize:11,color:"#8a7a5a",letterSpacing:1,textTransform:"uppercase"}}>{label}</label>
-      <div style={{display:"flex",alignItems:"center",borderRadius:6,overflow:"hidden",border:"1px solid #3a2a2a"}}>
-        <button style={{background:"#2a1a1a",color:"#e87a7a",fontSize:22,fontWeight:"bold",width:44,minHeight:44,border:"none",cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}
+    <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0,width:"100%"}}>
+      <label style={{fontSize:11,color:"#8a7a5a",letterSpacing:1,textTransform:"uppercase",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</label>
+      <div style={{display:"flex",alignItems:"center",borderRadius:6,overflow:"hidden",border:"1px solid #3a2a2a",width:"100%"}}>
+        <button style={{background:"#2a1a1a",color:"#e87a7a",fontSize:20,fontWeight:"bold",width:40,minWidth:40,minHeight:44,border:"none",cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}
           onClick={()=>onChange(String(Math.max(0,n-1)))}>−</button>
-        <input style={{flex:1,background:"#0d0d1a",color,border:"none",textAlign:"center",fontSize:20,fontWeight:"bold",fontFamily:"'Crimson Text',Georgia,serif",minHeight:44,outline:"none",minWidth:0}}
+        <input style={{flex:1,background:"#0d0d1a",color,border:"none",textAlign:"center",fontSize:18,fontWeight:"bold",fontFamily:"'Crimson Text',Georgia,serif",minHeight:44,outline:"none",minWidth:0,width:"100%"}}
           type="number" inputMode="numeric" value={value} onChange={e=>onChange(e.target.value)}/>
-        <button style={{background:"#1a2a1a",color:"#4ade80",fontSize:22,fontWeight:"bold",width:44,minHeight:44,border:"none",cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}
+        <button style={{background:"#1a2a1a",color:"#4ade80",fontSize:20,fontWeight:"bold",width:40,minWidth:40,minHeight:44,border:"none",cursor:"pointer",flexShrink:0,fontFamily:"inherit"}}
           onClick={()=>onChange(String(n+1))}>+</button>
       </div>
     </div>
@@ -275,7 +275,7 @@ const CombatantCard = memo(function CombatantCard({
       {/* Active turn panel */}
       {isActive&&(
         <div style={{borderTop:"1px solid rgba(232,200,122,.2)",paddingTop:14}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12,width:"100%",boxSizing:"border-box",overflow:"hidden"}}>
             <Stepper label="💥 Damage (self)" value={damageInput} onChange={onDamageChange} color={C.redBright}/>
             <Stepper label="✚ Heal (self)"   value={healInput}   onChange={onHealChange}   color={C.green}/>
           </div>
@@ -312,26 +312,106 @@ const CombatantCard = memo(function CombatantCard({
 );
 
 // ─── TargetPanel ──────────────────────────────────────────────────────────────
-const TargetPanel = memo(function TargetPanel({ combatants, targetPanel, onToggleTarget, onDamage, onHeal, onClose }) {
+const TargetPanel = memo(function TargetPanel({
+  combatants, targetPanel, onToggleTarget, onDamage, onHeal, onClose,
+  conditions, onApplyConditions, onTogglePanelCond,
+}) {
+  const [mode, setMode] = useState("hp"); // "hp" | "conditions"
+
+  // pendingConds lives in targetPanel state so it persists across tab switches
+  const pendingConds = targetPanel.pendingConds || [];
+  const hasAmount  = !!targetPanel.amount;
+  const hasConds   = pendingConds.length > 0;
+  const hasTargets = targetPanel.targets.size > 0;
+
   const source = combatants.find(c=>c.id===targetPanel.sourceId);
   const others = combatants.filter(c=>c.id!==targetPanel.sourceId);
+
+  // Apply conditions only, then close
+  function applyConditionsOnly() {
+    if (!hasTargets || !hasConds) return;
+    onApplyConditions([...targetPanel.targets], pendingConds);
+    onClose();
+  }
+
+  // Apply damage + optional conditions, then close
+  function applyDamage() {
+    if (!hasTargets || !hasAmount) return;
+    if (hasConds) onApplyConditions([...targetPanel.targets], pendingConds);
+    onDamage(); // closes panel internally
+  }
+
+  // Apply heal + optional conditions, then close
+  function applyHeal() {
+    if (!hasTargets || !hasAmount) return;
+    if (hasConds) onApplyConditions([...targetPanel.targets], pendingConds);
+    onHeal(); // closes panel internally
+  }
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"}}
       onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
       <div style={{background:"#100a14",border:`2px solid ${C.gold}`,borderRadius:"16px 16px 0 0",padding:"20px 16px",width:"100%",maxWidth:600,maxHeight:"90vh",overflowY:"auto",paddingBottom:40}}>
         <div style={{width:40,height:4,background:"#3a2a2a",borderRadius:2,margin:"0 auto 16px"}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div style={{color:C.gold,fontSize:17,fontFamily:"'Cinzel',Georgia,serif",letterSpacing:1}}>
-            🎯 Target Attack{source?` — ${source.name}`:""}
+            🎯 Apply to Others{source?` — ${source.name}`:""}
           </div>
           <button style={{...btnStyle("ghost",{minHeight:44,padding:"0 14px",borderColor:"#5a1a1a",color:C.redBright})}} onClick={onClose}>✕</button>
         </div>
 
-        <div style={{marginBottom:16}}>
-          <Stepper label="Damage / Heal Amount" value={targetPanel.amount}
-            onChange={v=>onToggleTarget(null, v)} color={C.text}/>
+        {/* Mode toggle */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:16}}>
+          <button style={{...btnStyle(mode==="hp"?"primary":"ghost",{minHeight:44,fontSize:14}), borderRadius:8}}
+            onClick={()=>setMode("hp")}>
+            💥 HP (Damage / Heal)
+          </button>
+          <button style={{...btnStyle(mode==="conditions"?"primary":"ghost",{minHeight:44,fontSize:14}), borderRadius:8}}
+            onClick={()=>setMode("conditions")}>
+            ✦ Conditions
+          </button>
         </div>
 
+        {/* HP mode */}
+        {mode==="hp"&&(
+          <div style={{marginBottom:16,width:"100%",boxSizing:"border-box"}}>
+            <Stepper label="Damage / Heal Amount" value={targetPanel.amount}
+              onChange={v=>onToggleTarget(null, v)} color={C.text}/>
+          </div>
+        )}
+
+        {/* Conditions mode */}
+        {mode==="conditions"&&(
+          <div style={{marginBottom:16}}>
+            <div style={sectionTitleStyle}>Toggle Conditions on Targets</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:8}}>
+              {conditions.map(cond=>{
+                const sel=pendingConds.includes(cond);
+                return (
+                  <button key={cond}
+                    style={{padding:"8px 13px",borderRadius:20,fontSize:13,
+                      border:`1px solid ${sel?"#c0392b":"#3a2a2a"}`,
+                      background:sel?"#8b1a1a":"rgba(255,255,255,.04)",
+                      color:sel?"#fff":C.textDim,
+                      cursor:"pointer",fontFamily:"'Crimson Text',Georgia,serif",
+                      minHeight:40,userSelect:"none",WebkitTapHighlightColor:"transparent"}}
+                    onClick={()=>onTogglePanelCond(cond)}>
+                    {cond}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{fontSize:12,color:C.textDim,marginBottom:4}}>
+              {pendingConds.length>0
+                ? <>Selected: <strong style={{color:C.gold}}>{pendingConds.join(", ")}</strong> — will be <em>toggled</em> on each target (added if absent, removed if present)</>
+                : "Tap conditions above to select them, then choose targets below."}
+            </div>
+          </div>
+        )}
+
+        {/* Target list — shared by both modes */}
         <div style={sectionTitleStyle}>Select Targets</div>
         {others.length===0&&<p style={{color:C.textDim,fontSize:14}}>No other combatants to target.</p>}
         {others.map(c=>{
@@ -347,7 +427,14 @@ const TargetPanel = memo(function TargetPanel({ combatants, targetPanel, onToggl
                 <span style={{fontSize:22,color:sel?C.gold:"#4a3a2a",flexShrink:0}}>{sel?"☑":"☐"}</span>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontWeight:"bold",fontSize:16,color:isDead?C.textDead:C.text}}>{c.name}</div>
-                  <div style={{fontSize:13,color:C.textMid}}>{c.currentHp}/{c.maxHp} HP {isDead&&"☠"}</div>
+                  {mode==="hp"
+                    ? <div style={{fontSize:13,color:C.textMid}}>{c.currentHp}/{c.maxHp} HP {isDead&&"☠"}</div>
+                    : <div style={{fontSize:12,color:C.textDim,flexWrap:"wrap",display:"flex",gap:4,marginTop:3}}>
+                        {c.conditions.length>0
+                          ? c.conditions.map(cd=><span key={cd} style={{padding:"1px 7px",borderRadius:10,background:"#8b1a1a",border:"1px solid #c0392b",color:"#fff",fontSize:11}}>{cd}</span>)
+                          : <span style={{color:C.textDim,fontSize:12}}>No conditions</span>}
+                      </div>
+                  }
                 </div>
                 <span style={{fontSize:10,padding:"2px 6px",borderRadius:3,
                   background:c.type==="player"?"rgba(26,74,26,.5)":"rgba(74,26,26,.5)",
@@ -356,21 +443,48 @@ const TargetPanel = memo(function TargetPanel({ combatants, targetPanel, onToggl
                   {c.type==="player"?"PC":"NPC"}
                 </span>
               </div>
-              {sel&&<div style={{marginTop:6}}><HpBar current={c.currentHp} max={c.maxHp}/></div>}
+              {mode==="hp"&&sel&&<div style={{marginTop:6}}><HpBar current={c.currentHp} max={c.maxHp}/></div>}
             </div>
           );
         })}
 
-        <div style={{textAlign:"center",fontSize:13,color:C.textDim,margin:"10px 0"}}>
+        <div style={{textAlign:"center",fontSize:13,color:C.textDim,margin:"8px 0"}}>
           {targetPanel.targets.size} target{targetPanel.targets.size!==1?"s":""} selected
-          {targetPanel.amount&&<> · <strong style={{color:C.text}}>{targetPanel.amount}</strong> each</>}
+          {mode==="hp"&&targetPanel.amount&&<> · <strong style={{color:C.text}}>{targetPanel.amount}</strong> each</>}
+          {mode==="conditions"&&pendingConds.length>0&&<> · <strong style={{color:C.text}}>{pendingConds.length}</strong> condition{pendingConds.length!==1?"s":""} selected</>}
         </div>
 
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,position:"sticky",bottom:0,paddingTop:10,background:"#100a14"}}>
-          <button style={btnStyle("danger",{fontSize:16,minHeight:54})} onClick={onDamage}
-            disabled={targetPanel.targets.size===0||!targetPanel.amount}>💥 Deal Damage</button>
-          <button style={btnStyle("success",{fontSize:16,minHeight:54})} onClick={onHeal}
-            disabled={targetPanel.targets.size===0||!targetPanel.amount}>✚ Apply Heal</button>
+        {/* Summary of what will be applied */}
+        {(hasAmount||hasConds)&&hasTargets&&(
+          <div style={{background:"rgba(232,200,122,.07)",border:"1px solid rgba(232,200,122,.2)",borderRadius:8,padding:"8px 12px",marginBottom:8,fontSize:12,color:C.textMid,lineHeight:1.8}}>
+            <strong style={{color:C.gold}}>Will apply to {targetPanel.targets.size} target{targetPanel.targets.size!==1?"s":""}:</strong>
+            {hasAmount&&<div>💥/✚ <strong style={{color:C.text}}>{targetPanel.amount}</strong> damage or heal</div>}
+            {hasConds&&<div>✦ Toggle: <strong style={{color:C.text}}>{pendingConds.join(", ")}</strong></div>}
+          </div>
+        )}
+
+        {/* Action buttons — always visible, context-aware */}
+        <div style={{position:"sticky",bottom:0,paddingTop:6,background:"#100a14",display:"flex",flexDirection:"column",gap:6}}>
+          {/* HP buttons — shown on HP tab, or any time an amount is entered */}
+          {(mode==="hp"||hasAmount)&&(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <button style={btnStyle("danger",{fontSize:15,minHeight:50})} onClick={applyDamage}
+                disabled={!hasTargets||!hasAmount}>
+                {hasConds?"💥+✦ Dmg & Conds":"💥 Damage"}
+              </button>
+              <button style={btnStyle("success",{fontSize:15,minHeight:50})} onClick={applyHeal}
+                disabled={!hasTargets||!hasAmount}>
+                {hasConds?"✚+✦ Heal & Conds":"✚ Heal"}
+              </button>
+            </div>
+          )}
+          {/* Conditions-only button — shown on conditions tab when no amount set */}
+          {mode==="conditions"&&!hasAmount&&(
+            <button style={btnStyle("primary",{fontSize:15,minHeight:50})} onClick={applyConditionsOnly}
+              disabled={!hasTargets||!hasConds}>
+              ✦ Apply Conditions Only
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -464,6 +578,7 @@ const CombatTab = memo(function CombatTab({
   onRemoveEntry, onApplyHp, onOpenTarget, onTogglePendingCondition,
   // target panel
   targetPanel, onToggleTarget, onTargetedDamage, onTargetedHeal, onCloseTarget,
+  onApplyConditions, onTogglePanelCond,
 }) {
   return (
     <div>
@@ -625,6 +740,9 @@ const CombatTab = memo(function CombatTab({
           onDamage={onTargetedDamage}
           onHeal={onTargetedHeal}
           onClose={onCloseTarget}
+          conditions={conditions}
+          onApplyConditions={onApplyConditions}
+          onTogglePanelCond={onTogglePanelCond}
         />
       )}
     </div>
@@ -810,7 +928,7 @@ export default function App() {
   const cbToggleAddOpen     = useCallback(()=>setAddOpen(o=>!o),[]);
   const cbClearAll          = useCallback(()=>{ setCombatants([]); setEnvTurns([]); },[]);
   const cbQuickInputChange  = useCallback((id,v)=>setQuickInputs(q=>({...q,[id]:v})),[]);
-  const cbOpenTarget        = useCallback(id=>setTargetPanel({sourceId:id,targets:new Set(),amount:""}),[]);
+  const cbOpenTarget        = useCallback(id=>setTargetPanel({sourceId:id,targets:new Set(),amount:"",pendingConds:[]}),[]);
   const cbCloseTarget       = useCallback(()=>setTargetPanel(null),[]);
   const cbRemoveNpc         = useCallback(id=>{ setNpcLibrary(p=>p.filter(x=>x.id!==id)); setToast("Removed"); },[]);
   const cbImportLibrary     = useCallback(()=>{ setImportModal("library"); setImportText(""); setImportError(""); },[]);
@@ -820,6 +938,16 @@ export default function App() {
   const cbResetConditions   = useCallback(()=>{ if(window.confirm("Reset conditions to defaults?")){ setConditions(DEFAULT_CONDITIONS); setToast("✅ Reset"); }},[]);
   const cbImportTextChange  = useCallback(v=>{ setImportText(v); setImportError(""); },[]);
   const cbCloseImportModal  = useCallback(()=>setImportModal(false),[]);
+  const cbTogglePanelCond   = useCallback(cond=>handleTogglePanelCond(cond),[]);
+  const cbApplyConditions   = useCallback((ids,conds)=>{
+    const idSet=new Set(ids);
+    setCombatants(p=>p.map(c=>{
+      if (!idSet.has(c.id)) return c;
+      let nc=[...c.conditions];
+      conds.forEach(cond=>{ nc.includes(cond)?nc=nc.filter(x=>x!==cond):nc.push(cond); });
+      return {...c,conditions:nc};
+    }));
+  },[]);
 
   const allEntries = [
     ...combatants.map(c=>({kind:"combatant",...c})),
@@ -904,10 +1032,17 @@ export default function App() {
   }
   function handleToggleTarget(id, amountOverride) {
     if (amountOverride !== null) {
+      // amountOverride used for amount changes
       setTargetPanel(p=>({...p, amount:amountOverride}));
     } else {
       setTargetPanel(p=>{ const t=new Set(p.targets); t.has(id)?t.delete(id):t.add(id); return{...p,targets:t}; });
     }
+  }
+  function handleTogglePanelCond(cond) {
+    setTargetPanel(p=>{
+      const pc = p.pendingConds||[];
+      return {...p, pendingConds: pc.includes(cond)?pc.filter(c=>c!==cond):[...pc,cond]};
+    });
   }
   function applyTargetedDamage() {
     const dmg=parseInt(targetPanel.amount);
@@ -920,6 +1055,15 @@ export default function App() {
     if (isNaN(heal)||heal<=0||targetPanel.targets.size===0) return;
     setCombatants(p=>p.map(c=>targetPanel.targets.has(c.id)?{...c,currentHp:clamp(c.currentHp+heal,0,c.maxHp)}:c));
     setTargetPanel(null);
+  }
+  function applyConditionsToTargets(targetIds, conds) {
+    const idSet = new Set(targetIds);
+    setCombatants(p=>p.map(c=>{
+      if (!idSet.has(c.id)) return c;
+      let nc=[...c.conditions];
+      conds.forEach(cond=>{ nc.includes(cond)?nc=nc.filter(x=>x!==cond):nc.push(cond); });
+      return {...c, conditions:nc};
+    }));
   }
   function togglePendingCondition(cond) {
     setPendingConditions(p=>p.includes(cond)?p.filter(c=>c!==cond):[...p,cond]);
@@ -1045,6 +1189,8 @@ export default function App() {
             targetPanel={targetPanel} onToggleTarget={handleToggleTarget}
             onTargetedDamage={applyTargetedDamage} onTargetedHeal={applyTargetedHeal}
             onCloseTarget={cbCloseTarget}
+            onApplyConditions={cbApplyConditions}
+            onTogglePanelCond={cbTogglePanelCond}
           />
         )}
         {tab==="library"&&(
