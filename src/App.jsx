@@ -566,6 +566,43 @@ const ImportModal = memo(function ImportModal({ importModal, importText, importE
 }
 );
 
+// ─── EndCombatModal ──────────────────────────────────────────────────────────
+const EndCombatModal = memo(function EndCombatModal({ round, combatantCount, onConfirm, onCancel }) {
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:400,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 20px"}}
+      onClick={e=>{ if(e.target===e.currentTarget) onCancel(); }}>
+      <div style={{background:"#100a14",border:`2px solid #8b1a1a`,borderRadius:16,padding:"28px 24px",width:"100%",maxWidth:420,boxShadow:"0 8px 40px rgba(0,0,0,.7)"}}>
+        {/* Icon */}
+        <div style={{textAlign:"center",fontSize:44,marginBottom:12}}>⚔️</div>
+
+        {/* Title */}
+        <div style={{fontFamily:"'Cinzel',Georgia,serif",fontSize:20,fontWeight:"bold",color:C.gold,textAlign:"center",marginBottom:8,letterSpacing:1}}>
+          End Combat?
+        </div>
+
+        {/* Body */}
+        <div style={{color:C.textMid,fontSize:14,textAlign:"center",lineHeight:1.7,marginBottom:24}}>
+          You are on <strong style={{color:C.text}}>Round {round}</strong> with{" "}
+          <strong style={{color:C.text}}>{combatantCount} combatant{combatantCount!==1?"s":""}</strong> in the field.
+          <br/>
+          <span style={{color:"#e87a7a",fontSize:13}}>This will clear the initiative order and cannot be undone.</span>
+        </div>
+
+        {/* Buttons */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          <button style={btnStyle("ghost",{minHeight:52,fontSize:16,borderColor:"#3a2a2a"})} onClick={onCancel}>
+            ← Keep Fighting
+          </button>
+          <button style={btnStyle("danger",{minHeight:52,fontSize:16})} onClick={onConfirm}>
+            End Combat
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+);
+
 // ─── CombatTab ────────────────────────────────────────────────────────────────
 const CombatTab = memo(function CombatTab({
   // add-form state
@@ -575,7 +612,7 @@ const CombatTab = memo(function CombatTab({
   addOpen, onToggleAddOpen,
   // combat state
   combatStarted, allEntries, currentIndex, round, currentEntry,
-  onStartCombat, onClearAll, onCommitTurn, onPrevTurn, onEndCombat,
+  onStartCombat, onClearAll, onCommitTurn, onPrevTurn, onEndCombat, onRequestEnd,
   // per-card
   combatants,
   quickInputs, onQuickInputChange,
@@ -695,7 +732,7 @@ const CombatTab = memo(function CombatTab({
           <div style={{display:"grid",gridTemplateColumns:"1fr 2fr 1fr",gap:6,marginBottom:4}}>
             <button style={btnStyle("",{minHeight:52,fontSize:15})} onClick={onPrevTurn}>← Prev</button>
             <button style={btnStyle("primary",{minHeight:52,fontSize:15})} onClick={onCommitTurn}>✓ Confirm & Next →</button>
-            <button style={btnStyle("danger",{minHeight:52,fontSize:14})} onClick={onEndCombat}>End</button>
+            <button style={btnStyle("danger",{minHeight:52,fontSize:14})} onClick={onRequestEnd}>End</button>
           </div>
           <div style={{display:"flex",justifyContent:"center",gap:12,fontSize:13,color:C.textMid}}>
             <span style={{background:"#8b1a1a",color:C.text,padding:"3px 12px",borderRadius:12,fontSize:12}}>Round {round}</span>
@@ -913,6 +950,7 @@ export default function App() {
   const [libForm,          setLibForm]          = useState({name:"",maxHp:"",ac:"",cr:""});
   const [condInput,        setCondInput]        = useState("");
   const [toast,            setToast]            = useState("");
+  const [showEndConfirm,   setShowEndConfirm]   = useState(false);
   const [importModal,      setImportModal]      = useState(false);
   const [importText,       setImportText]       = useState("");
   const [importError,      setImportError]      = useState("");
@@ -936,6 +974,7 @@ export default function App() {
   const cbQuickInputChange  = useCallback((id,v)=>setQuickInputs(q=>({...q,[id]:v})),[]);
   const cbOpenTarget        = useCallback(id=>setTargetPanel({sourceId:id,targets:new Set(),amount:"",pendingConds:[]}),[]);
   const cbCloseTarget       = useCallback(()=>setTargetPanel(null),[]);
+  const cbRequestEnd        = useCallback(()=>setShowEndConfirm(true),[]);
   const cbRemoveNpc         = useCallback(id=>{ setNpcLibrary(p=>p.filter(x=>x.id!==id)); setToast("Removed"); },[]);
   const cbImportLibrary     = useCallback(()=>{ setImportModal("library"); setImportText(""); setImportError(""); },[]);
   const cbResetLibrary      = useCallback(()=>{ if(window.confirm("Reset NPC library to defaults?")){ setNpcLibrary(DEFAULT_NPC_LIBRARY); setToast("✅ Library reset"); }},[]);
@@ -1183,7 +1222,7 @@ export default function App() {
             combatStarted={combatStarted} allEntries={allEntries} currentIndex={currentIndex}
             round={round} currentEntry={currentEntry}
             onStartCombat={startCombat} onClearAll={cbClearAll}
-            onCommitTurn={commitTurn} onPrevTurn={prevTurn} onEndCombat={endCombat}
+            onCommitTurn={commitTurn} onPrevTurn={prevTurn} onEndCombat={endCombat} onRequestEnd={cbRequestEnd}
             combatants={combatants}
             quickInputs={quickInputs} onQuickInputChange={cbQuickInputChange}
             damageInput={damageInput} healInput={healInput}
@@ -1238,6 +1277,15 @@ export default function App() {
       )}
 
       {toast&&<Toast msg={toast} onDone={()=>setToast("")}/>}
+
+      {showEndConfirm&&(
+        <EndCombatModal
+          round={round}
+          combatantCount={combatants.length}
+          onConfirm={()=>{ setShowEndConfirm(false); endCombat(); }}
+          onCancel={()=>setShowEndConfirm(false)}
+        />
+      )}
     </div>
   );
 }
