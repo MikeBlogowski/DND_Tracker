@@ -169,7 +169,7 @@ function Toast({ msg, onDone }) {
 }
 
 // ─── EnvCard ──────────────────────────────────────────────────────────────────
-const EnvCard = memo(function EnvCard({ entry, isActive, onRemove }) {
+const EnvCard = memo(function EnvCard({ entry, isActive, onRemove, onOpenTarget }) {
   const cs = isActive
     ? {background:C.bgEnvActive,border:`2px solid ${C.borderEnvActive}`,borderRadius:10,padding:14,marginBottom:10,boxShadow:"0 0 24px rgba(150,150,255,.2)"}
     : {background:C.bgEnv,border:`1px solid ${C.borderEnv}`,borderRadius:10,padding:14,marginBottom:10};
@@ -188,8 +188,14 @@ const EnvCard = memo(function EnvCard({ entry, isActive, onRemove }) {
           onClick={()=>onRemove(entry.id)}>✕</button>
       </div>
       {isActive&&(
-        <div style={{marginTop:12,borderTop:"1px solid rgba(144,144,255,.2)",paddingTop:12,fontSize:14,color:"#9090c0",lineHeight:1.5}}>
-          Resolve this environment / lair action, then tap <strong style={{color:C.gold}}>Confirm Turn & Next →</strong>
+        <div style={{marginTop:12,borderTop:"1px solid rgba(144,144,255,.2)",paddingTop:12}}>
+          <button style={btnStyle("blue",{width:"100%",fontSize:16,marginBottom:10})}
+            onClick={()=>onOpenTarget(entry.id)}>
+            🎯 Deal Damage / Heal / Conditions to Targets
+          </button>
+          <div style={{fontSize:13,color:"#9090c0",lineHeight:1.5,textAlign:"center"}}>
+            Then tap <strong style={{color:C.gold}}>Confirm Turn & Next →</strong> when done.
+          </div>
         </div>
       )}
     </div>
@@ -709,7 +715,7 @@ const CombatTab = memo(function CombatTab({
       {allEntries.map((entry,idx)=>{
         const isActive=combatStarted&&idx===currentIndex;
         if (entry.kind==="env") return (
-          <EnvCard key={entry.id} entry={entry} isActive={isActive} onRemove={onRemoveEntry}/>
+          <EnvCard key={entry.id} entry={entry} isActive={isActive} onRemove={onRemoveEntry} onOpenTarget={onOpenTarget}/>
         );
         return (
           <CombatantCard
